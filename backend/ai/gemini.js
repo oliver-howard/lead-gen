@@ -33,7 +33,7 @@ ${websiteContext}
 Write a cold outreach email that:
 1. Has a clear subject line: "Inquiring about a website redesign for ${lead.name}"
 2. Opens with an intro (My name is Oliver, and I am a new grad from UC Berkley with a small web development agency) followed by a specific observation about why their current online presence is outdated or suboptimal.
-3. If they use a platform like Squarespace or Wix (Platform: ${lead.cms}), briefly mention how custom sites are significantly faster and more polished than those generic templates.
+3. If they use a platform like Squarespace or Wix (Platform: ${lead.cms}), briefly mention how custom sites are significantly faster and more polished than those generic templates, which can lead to higher Google rankings and ultimately more sales/clients/etc.
 4. NEVER uses generic flattery like "Your 4.8-star reputation deserves a better site." Do not mention their rating or reviews.
 5. Positions yourself as an ongoing service partner who rebuilds websites from the ground up to be high-performance, modern machines.
 6. Emphasizes that you are a complete website management solution—they would be outsourcing their entire digital presence to you so they never have to think about it again.

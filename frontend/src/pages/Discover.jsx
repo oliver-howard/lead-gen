@@ -178,7 +178,7 @@ export default function Discover() {
                   display: 'flex', 
                   flexDirection: 'column', 
                   gap: 4,
-                  maxHeight: 400,
+                  maxHeight: 420,
                   overflowY: 'auto',
                   background: '#0a0a0f',
                   border: '1px solid var(--bg-border)',
@@ -207,7 +207,8 @@ export default function Discover() {
         </div>
 
         {/* Tips */}
-        <div style={{ marginTop: 24, maxWidth: 560 }}>
+        <div style={{ marginTop: 24 }}>
+
           <div className="section-label">Tips for best results</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
             {[

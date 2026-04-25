@@ -117,13 +117,19 @@ async function measurePerformance(page, url) {
       if (generator.includes('Wix')) return 'Wix';
       if (generator.includes('Shopify')) return 'Shopify';
       if (generator.includes('WordPress')) return 'WordPress';
+      if (generator.includes('GoDaddy')) return 'GoDaddy';
+      if (generator.includes('Webflow')) return 'Webflow';
+      if (generator.includes('Weebly')) return 'Weebly';
 
-      // Fallback script/link checks
+      // Fallback script/link/ID checks
       const html = document.documentElement.innerHTML;
       if (html.includes('squarespace.com')) return 'Squarespace';
       if (html.includes('wixstatic.com')) return 'Wix';
       if (html.includes('cdn.shopify.com')) return 'Shopify';
-      if (html.includes('/wp-content/')) return 'WordPress';
+      if (html.includes('/wp-content/') || html.includes('/wp-includes/')) return 'WordPress';
+      if (html.includes('godaddy.com') || html.includes('secureserver.net')) return 'GoDaddy';
+      if (html.includes('webflow.com')) return 'Webflow';
+      if (html.includes('weebly.com')) return 'Weebly';
 
       return null;
     });

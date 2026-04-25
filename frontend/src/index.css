@@ -360,8 +360,10 @@ select.input { cursor: pointer; }
   border: 1px solid var(--bg-border);
   border-radius: var(--radius-lg);
   padding: 28px;
-  max-width: 560px;
+  width: 100%;
 }
+
+
 
 .form-row { display: flex; gap: 12px; margin-bottom: 14px; }
 .form-group { display: flex; flex-direction: column; gap: 6px; flex: 1; }

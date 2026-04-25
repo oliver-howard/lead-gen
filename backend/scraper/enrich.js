@@ -67,33 +67,51 @@ async function findEmail(websiteUrl, businessName) {
 }
 
 /**
- * Calculate a lead score 0–100 based on enrichment data.
+ * Calculate a refined lead score 0–100 based on enrichment data.
+ * Focused on Business Value (40%), Technical Need (35%), and Platform (25%).
  */
 function calculateLeadScore(lead) {
-  let score = 0;
+  let business = 0;
+  // A. Business Value (40%)
+  if (lead.reviews > 200) business = 40;
+  else if (lead.reviews > 50) business = 35;
+  else if (lead.reviews > 10) business = 25;
+  else business = 10;
+  
+  if (lead.rating > 4.5) business += 5;
+  else if (lead.rating < 3.5) business -= 5;
 
-  // No website = highest priority
+  // B. Technical Need (35%)
+  let tech = 0;
   if (!lead.website) {
-    score += 40;
+    tech = 15; // High need, but lower confidence without a site to audit
   } else {
-    // Website exists — audit-based scoring
     if (lead.mobile_score !== null) {
-      if (lead.mobile_score < 30) score += 25;
-      else if (lead.mobile_score < 60) score += 15;
-      else if (lead.mobile_score < 80) score += 5;
+      if (lead.mobile_score < 40) tech += 20;
+      else if (lead.mobile_score < 70) tech += 10;
     }
-    if (!lead.has_ssl) score += 10;
-    if (!lead.is_mobile_responsive) score += 15;
+    if (lead.is_mobile_responsive === false) tech += 10;
+    if (lead.has_ssl === false) tech += 5;
   }
 
-  // Good reviews = real business worth reaching out to
-  if (lead.reviews >= 10) score += 5;
-  if (lead.reviews >= 50) score += 5;
+  // C. Platform/CMS Bonus (25%)
+  let platform = 0;
+  const templatePlatforms = ['Wix', 'Squarespace', 'GoDaddy', 'WordPress', 'Shopify'];
+  if (lead.cms && templatePlatforms.includes(lead.cms)) {
+    platform = 25;
+  } else if (!lead.website) {
+    platform = 10;
+  }
 
-  // Has a findable email = more likely to convert
-  if (lead.email) score += 5;
+  let total = business + tech + platform;
 
-  return Math.min(100, score);
+  // Multipliers for "Unicorn" leads
+  // High volume business + Terrible mobile performance
+  if (lead.reviews > 100 && lead.mobile_score !== null && lead.mobile_score < 50) {
+    total *= 1.2;
+  }
+
+  return Math.min(100, Math.max(0, Math.round(total)));
 }
 
 module.exports = { findEmail, calculateLeadScore };
