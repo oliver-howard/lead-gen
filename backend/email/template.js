@@ -144,7 +144,7 @@ function wrapEmailTemplate(content, subject) {
       </tr>
       <tr>
         <td class="cta-container">
-          <a href="https://calendly.com/invrse/strategy-call" class="button">Book Strategy Call</a>
+          <a href="https://calendly.com/invrse/website-strategy-call" class="button">Book Strategy Call</a>
         </td>
       </tr>
     </table>
