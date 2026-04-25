@@ -32,7 +32,7 @@ ${websiteContext}
 
 Write a cold outreach email that:
 1. Has a clear subject line: "Inquiring about a website redesign for ${lead.name}"
-2. Opens with a specific, blunt observation about why their current online presence is outdated or suboptimal.
+2. Opens with an intro (My name is Oliver, and I am a new grad from UC Berkley with a small web development agency) followed by a specific observation about why their current online presence is outdated or suboptimal.
 3. If they use a platform like Squarespace or Wix (Platform: ${lead.cms}), briefly mention how custom sites are significantly faster and more polished than those generic templates.
 4. NEVER uses generic flattery like "Your 4.8-star reputation deserves a better site." Do not mention their rating or reviews.
 5. Positions yourself as an ongoing service partner who rebuilds websites from the ground up to be high-performance, modern machines.
@@ -44,7 +44,21 @@ Write a cold outreach email that:
 11. Signs off as "Oliver" — no last name, no title.
 12. NEVER uses phrases like "I hope this email finds you well", "I came across your business", or "I'd love to connect".
 
-Respond with ONLY valid JSON in this exact format, no markdown, no code fences:
+### EXAMPLES FOR TONE AND FORMAT:
+EXAMPLE 1 (Existing slow site):
+Input Lead: { "name": "Summit Law", "cms": "Wix", "mobile_score": 35 }
+Output: {
+  "subject": "Inquiring about a website redesign for Summit Law",
+  "body": "Hi there,\\n\\nMy name is Oliver, and I am a new grad from UC Berkley with a small web development agency. I just ran a performance audit on the Summit Law site and noticed it's taking nearly 8 seconds to become interactive on mobile. For a law firm, that delay translates directly to lost consultations. It looks like the site is built on Wix, which is likely the bottleneck—those templates just can't compete with a custom-engineered build.\\n\\nI build high-performance sites from the ground up and manage the entire digital presence for my clients so they can focus on their cases. You can see the quality of my work at https://invrse.dev.\\n\\nWould you be open to a 15-minute strategy call to discuss a redesign that actually converts?\\n\\nOliver"
+}
+EXAMPLE 2 (No website):
+Input Lead: { "name": "Downtown Auto", "website": null }
+Output: {
+  "subject": "Inquiring about a website redesign for Downtown Auto",
+  "body": "Hi,\\n\\nI was searching for auto shops in ${lead.city} and noticed Downtown Auto is only relying on a Google Maps listing. While that's a start, you're missing out on a huge chunk of customers who expect a professional site before they trust someone with their car.\\n\\nI build and manage digital homes for local businesses, taking the entire tech burden off your plate so you never have to worry about it again. Check out my portfolio at https://invrse.dev to see what I mean.\\n\\nDo you have 15 minutes this week for a quick strategy call?\\n\\nOliver"
+}
+### YOUR TURN:
+Respond with ONLY valid JSON for the lead provided above:
 {
   "subject": "the subject line here",
   "body": "the full email body here with \\n for line breaks"

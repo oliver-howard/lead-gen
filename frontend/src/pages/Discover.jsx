@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Search, MapPin, Layers } from 'lucide-react';
 
 const NICHES = [
@@ -19,20 +19,81 @@ export default function Discover() {
   const [max, setMax] = useState(20);
   const [running, setRunning] = useState(false);
   const [log, setLog] = useState([]);
+  
+  const logEndRef = useRef(null);
 
-  const handleRun = () => {
+  useEffect(() => {
+    if (logEndRef.current) {
+      logEndRef.current.scrollTop = logEndRef.current.scrollHeight;
+    }
+  }, [log]);
+
+  const handleRun = async () => {
     if (!niche || !city) return;
     setRunning(true);
-    setLog([]);
+    setLog([{ type: 'info', msg: '⏳ Starting job...' }]);
 
-    // The scraper runs locally. This page shows the command to run.
-    setLog([
-      { type: 'info', msg: '📋 Copy and run this command in your terminal:' },
-      { type: 'code', msg: `cd backend && node scraper/run.js --niche "${niche}" --city "${city}" --max ${max}` },
-      { type: 'info', msg: '✅ Leads will appear in the Dashboard automatically as they are saved to Supabase.' },
-      { type: 'info', msg: '⏱  Expected time: ~2–5 minutes for 20 leads (includes audit + email discovery).' },
-    ]);
-    setRunning(false);
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/scrape/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ niche, city, max }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to start job');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      console.log('Stream reader started');
+
+      while (true) {
+        try {
+          const { done, value } = await reader.read();
+          if (done) {
+            console.log('Stream reader finished (done: true)');
+            break;
+          }
+
+          const chunk = decoder.decode(value, { stream: true });
+          console.log(`Received chunk: ${chunk.length} chars`);
+          
+          buffer += chunk;
+          const lines = buffer.split('\n');
+          
+          // Keep the last partial line in the buffer
+          buffer = lines.pop();
+
+          if (lines.length > 0) {
+            setLog(prev => [
+              ...prev,
+              ...lines.map(line => ({
+                type: line.startsWith('🚀') || line.startsWith('✅') ? 'info' : 
+                      line.startsWith('⚠️') || line.startsWith('❌') ? 'error' : 'code',
+                msg: line
+              })).filter(l => l.msg.trim() !== '')
+            ]);
+          }
+        } catch (readErr) {
+          console.error('Error reading from stream:', readErr);
+          setLog(prev => [...prev, { type: 'error', msg: `❌ Stream Error: ${readErr.message}` }]);
+          break;
+        }
+      }
+
+
+      if (buffer && buffer.trim() !== '') {
+        setLog(prev => [...prev, { type: 'code', msg: buffer }]);
+      }
+    } catch (err) {
+      setLog(prev => [...prev, { type: 'error', msg: `❌ ${err.message}` }]);
+    } finally {
+      setRunning(false);
+    }
   };
 
   return (
@@ -103,30 +164,44 @@ export default function Discover() {
             onClick={handleRun}
             disabled={!niche || !city || running}
           >
-            <Search size={14} />
-            {running ? 'Generating...' : 'Generate Command'}
+            {running ? <span className="spinner" style={{ width: 14, height: 14, marginRight: 8 }}></span> : <Search size={14} />}
+            {running ? 'Running Scraper...' : 'Start Discovery'}
           </button>
 
           {log.length > 0 && (
-            <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <div className="section-label">Run this locally</div>
-              {log.map((entry, i) => (
-                <div
-                  key={i}
-                  style={{
-                    background: entry.type === 'code' ? '#0a0a0f' : 'var(--bg-elevated)',
-                    border: '1px solid var(--bg-border)',
-                    borderRadius: 'var(--radius)',
-                    padding: '10px 14px',
-                    fontSize: entry.type === 'code' ? 13 : 13,
-                    fontFamily: entry.type === 'code' ? "'JetBrains Mono', monospace" : 'inherit',
-                    color: entry.type === 'code' ? '#a5d6a7' : 'var(--text-secondary)',
-                    userSelect: entry.type === 'code' ? 'all' : 'auto',
-                  }}
-                >
-                  {entry.msg}
-                </div>
-              ))}
+            <div style={{ marginTop: 24 }}>
+              <div className="section-label">Live Logs</div>
+              <div 
+                ref={logEndRef}
+                style={{ 
+                  marginTop: 10,
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  gap: 4,
+                  maxHeight: 400,
+                  overflowY: 'auto',
+                  background: '#0a0a0f',
+                  border: '1px solid var(--bg-border)',
+                  borderRadius: 'var(--radius)',
+                  padding: '12px',
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: 12,
+                }}
+              >
+                {log.map((entry, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      color: entry.type === 'info' ? 'var(--text-primary)' : 
+                             entry.type === 'error' ? '#ff5252' : '#a5d6a7',
+                      whiteSpace: 'pre-wrap',
+                      lineHeight: 1.5
+                    }}
+                  >
+                    {entry.msg}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -151,3 +226,4 @@ export default function Discover() {
     </>
   );
 }
+
