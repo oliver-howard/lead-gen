@@ -97,4 +97,45 @@ router.post('/send', async (req, res) => {
   }
 });
 
+// GET /api/email
+router.get('/', async (req, res) => {
+  const { data, error } = await supabase
+    .from('emails')
+    .select('*, leads(name, email, city, niche, category)')
+    .order('generated_at', { ascending: false });
+
+  if (error) return res.status(500).json({ error: error.message });
+  return res.status(200).json({ emails: data });
+});
+
+// PUT /api/email/:id
+router.put('/:id', async (req, res) => {
+  const { id } = req.params;
+  const { subject, body } = req.body;
+
+  const { data, error } = await supabase
+    .from('emails')
+    .update({ subject, body })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) return res.status(500).json({ error: error.message });
+  return res.status(200).json({ email: data });
+});
+
+// DELETE /api/email/:id
+router.delete('/:id', async (req, res) => {
+  const { id } = req.params;
+
+  const { error } = await supabase
+    .from('emails')
+    .delete()
+    .eq('id', id);
+
+  if (error) return res.status(500).json({ error: error.message });
+  return res.status(200).json({ success: true });
+});
+
 module.exports = router;
+

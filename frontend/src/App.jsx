@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
 import { LayoutDashboard, Search, Mail, BarChart2 } from 'lucide-react';
 import Dashboard from './pages/Dashboard';
 import Discover from './pages/Discover';
+import Emails from './pages/Emails';
 
 export default function App() {
   return (
@@ -37,6 +38,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/discover" element={<Discover />} />
+            <Route path="/emails" element={<Emails />} />
           </Routes>
         </main>
       </div>

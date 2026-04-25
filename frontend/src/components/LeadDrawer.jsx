@@ -22,6 +22,7 @@ function AuditBar({ label, score, icon: Icon }) {
 }
 
 export default function LeadDrawer({ lead, onClose, onUpdate, showToast }) {
+  const [emailId, setEmailId] = useState(lead.email_id || null);
   const [emailDraft, setEmailDraft] = useState(lead._draft || null);
   const [subject, setSubject] = useState(lead._subject || '');
   const [generating, setGenerating] = useState(false);
@@ -37,6 +38,8 @@ export default function LeadDrawer({ lead, onClose, onUpdate, showToast }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
+      
+      setEmailId(data.email.id);
       setSubject(data.email.subject);
       setEmailDraft(data.email.body);
       showToast('Email draft generated!');
@@ -51,16 +54,29 @@ export default function LeadDrawer({ lead, onClose, onUpdate, showToast }) {
     if (!emailDraft) return;
     setSending(true);
     try {
-      // Update draft in DB first
-      const { data: emailRecord } = await supabase
+      // Update draft in DB first via backend if possible, or use existing emailId
+      let currentId = emailId;
+      
+      const { data: emailRecord, error: upsertError } = await supabase
         .from('emails')
-        .upsert({ lead_id: lead.id, subject, body: emailDraft, status: 'draft' })
-        .select().single();
+        .upsert({ 
+          lead_id: lead.id, 
+          subject, 
+          body: emailDraft, 
+          status: 'draft' 
+        }, { onConflict: 'lead_id' })
+        .select()
+        .single();
+
+      if (upsertError) throw upsertError;
+      if (!emailRecord) throw new Error('Failed to save email draft');
+      
+      currentId = emailRecord.id;
 
       const res = await fetch('/api/email/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ emailId: emailRecord.id }),
+        body: JSON.stringify({ emailId: currentId }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -68,6 +84,7 @@ export default function LeadDrawer({ lead, onClose, onUpdate, showToast }) {
       showToast('Email sent! 🚀');
       onUpdate({ ...lead, status: 'emailed' });
     } catch (err) {
+      console.error('Send error:', err);
       showToast(err.message || 'Send failed', 'error');
     } finally {
       setSending(false);
