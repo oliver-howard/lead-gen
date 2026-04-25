@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Globe, Phone, Mail, Star, Shield, Smartphone, Monitor, Sparkles, Send, ExternalLink, Layers } from 'lucide-react';
+import { X, Globe, Phone, Mail, Star, Shield, Smartphone, Monitor, Sparkles, Send, ExternalLink, Layers, CheckCircle2 } from 'lucide-react';
 import supabase from '../lib/supabase';
 
 function AuditBar({ label, score, icon: Icon }) {
@@ -184,18 +184,36 @@ export default function LeadDrawer({ lead, onClose, onUpdate, showToast }) {
             </div>
           )}
 
-          {/* Email Draft */}
+          {/* Email Section */}
           <div>
-            <div className="section-label">Outreach Email</div>
-            {!emailDraft ? (
-              <button className="btn btn-primary" onClick={handleGenerate} disabled={generating} style={{ width: '100%', justifyContent: 'center' }}>
-                {generating ? <><span className="spinner" /> Generating with Gemini...</> : <><Sparkles size={14} /> Generate Personalized Email</>}
+            <div className="section-label">Outreach {emailId && lead.status === 'emailed' ? 'Follow-up' : 'Email'}</div>
+            
+            {!emailDraft || (lead.status === 'emailed' && !emailId) ? (
+              <button 
+                className="btn btn-primary" 
+                onClick={handleGenerate} 
+                disabled={generating} 
+                style={{ width: '100%', justifyContent: 'center' }}
+              >
+                {generating ? (
+                  <><span className="spinner" /> Generating...</>
+                ) : lead.status === 'emailed' ? (
+                  <><Sparkles size={14} /> Generate Follow-up Email</>
+                ) : (
+                  <><Sparkles size={14} /> Generate Personalized Email</>
+                )}
               </button>
             ) : (
               <>
                 <div style={{ marginBottom: 8 }}>
                   <div className="form-label" style={{ marginBottom: 5 }}>Subject</div>
-                  <input className="input" style={{ width: '100%' }} value={subject} onChange={e => setSubject(e.target.value)} />
+                  <input 
+                    className="input" 
+                    style={{ width: '100%' }} 
+                    value={subject} 
+                    onChange={e => setSubject(e.target.value)} 
+                    readOnly={lead.status === 'emailed' && !generating}
+                  />
                 </div>
                 <div style={{ marginBottom: 8 }}>
                   <div className="form-label" style={{ marginBottom: 5 }}>Body</div>
@@ -203,12 +221,15 @@ export default function LeadDrawer({ lead, onClose, onUpdate, showToast }) {
                     className="email-preview"
                     value={emailDraft}
                     onChange={e => setEmailDraft(e.target.value)}
+                    readOnly={lead.status === 'emailed' && !generating}
                   />
                 </div>
-                <button className="btn btn-ghost btn-sm" onClick={handleGenerate} disabled={generating}>
-                  {generating ? <span className="spinner" /> : <Sparkles size={13} />}
-                  Regenerate
-                </button>
+                {lead.status !== 'emailed' && (
+                  <button className="btn btn-ghost btn-sm" onClick={handleGenerate} disabled={generating}>
+                    {generating ? <span className="spinner" /> : <Sparkles size={13} />}
+                    Regenerate
+                  </button>
+                )}
               </>
             )}
           </div>
@@ -216,14 +237,20 @@ export default function LeadDrawer({ lead, onClose, onUpdate, showToast }) {
 
         <div className="drawer-footer">
           {emailDraft && lead.email && (
-            <button className="btn btn-primary" onClick={handleSend} disabled={sending} style={{ flex: 1, justifyContent: 'center' }}>
-              {sending ? <><span className="spinner" /> Sending...</> : <><Send size={14} /> Send Email</>}
+            <button 
+              className="btn btn-primary" 
+              onClick={handleSend} 
+              disabled={sending || (lead.status === 'emailed' && !emailId)} 
+              style={{ flex: 1, justifyContent: 'center' }}
+            >
+              {sending ? (
+                <><span className="spinner" /> Sending...</>
+              ) : lead.status === 'emailed' ? (
+                emailId ? <><Send size={14} /> Send Follow-up</> : <><CheckCircle2 size={14} /> Email Sent</>
+              ) : (
+                <><Send size={14} /> Send Email</>
+              )}
             </button>
-          )}
-          {!lead.email && emailDraft && (
-            <div style={{ flex: 1, fontSize: 12, color: 'var(--amber)', display: 'flex', alignItems: 'center', gap: 6 }}>
-              ⚠️ No email found — add one manually to send.
-            </div>
           )}
           <button className="btn btn-ghost btn-sm" onClick={handleArchive}>Archive</button>
         </div>
