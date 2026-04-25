@@ -69,16 +69,26 @@ router.post('/send', async (req, res) => {
 
     console.log(`[Email] Successfully sent via Resend! ID: ${data.id}`);
 
-    await supabase.from('emails').update({
+    const { error: updateEmailError } = await supabase.from('emails').update({
       status: 'sent',
       sent_at: new Date().toISOString(),
       resend_id: data.id,
     }).eq('id', emailId);
 
-    await supabase.from('leads').update({
+    if (updateEmailError) {
+      console.error('[Database] Failed to update email status:', updateEmailError.message);
+      throw new Error(`Email sent but failed to update status: ${updateEmailError.message}`);
+    }
+
+    const { error: updateLeadError } = await supabase.from('leads').update({
       status: 'emailed',
       last_contacted: new Date().toISOString(),
     }).eq('id', email.lead_id);
+
+    if (updateLeadError) {
+      console.error('[Database] Failed to update lead status:', updateLeadError.message);
+      // We don't necessarily want to throw here since the email WAS sent and email record updated
+    }
 
     return res.status(200).json({ success: true, resendId: data.id });
   } catch (err) {

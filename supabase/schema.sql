@@ -52,7 +52,7 @@ create table if not exists emails (
   sent_at       timestamptz,
   opened_at     timestamptz,
   replied_at    timestamptz,
-  gmail_message_id text,
+  resend_id     text,
 
   created_at    timestamptz default now()
 );
