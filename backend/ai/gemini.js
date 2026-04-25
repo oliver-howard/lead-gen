@@ -8,7 +8,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
  * @returns {object} { subject, body }
  */
 async function generateEmail(lead) {
-  const model = genAI.getGenerativeModel({ model: 'gemini-3-flash-preview' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
   // Build context string based on what we know
   const websiteContext = lead.website

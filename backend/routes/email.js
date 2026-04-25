@@ -39,6 +39,7 @@ router.post('/generate', async (req, res) => {
 });
 
 const { wrapEmailTemplate } = require('../email/template');
+const { sendEmail } = require('../email/resend');
 
 // POST /api/email/send
 router.post('/send', async (req, res) => {
@@ -55,50 +56,23 @@ router.post('/send', async (req, res) => {
   if (!email.leads?.email) return res.status(400).json({ error: 'Lead has no email address' });
 
   try {
-    console.log(`[Email] Attempting to send email ID: ${emailId} to ${email.leads.email}`);
+    console.log(`[Email] Attempting to send email ID: ${emailId} to ${email.leads.email} via Resend`);
     
-    const oauth2Client = new google.auth.OAuth2(
-      process.env.GMAIL_CLIENT_ID,
-      process.env.GMAIL_CLIENT_SECRET,
-      process.env.GMAIL_REDIRECT_URI
-    );
-    oauth2Client.setCredentials({ refresh_token: process.env.GMAIL_REFRESH_TOKEN });
-    const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
-
-    // Get the sender's email from the profile to ensure proper 'From' header
-    const profile = await gmail.users.getProfile({ userId: 'me' });
-    const senderEmail = profile.data.emailAddress;
-
     const htmlBody = wrapEmailTemplate(email.body, email.subject);
 
-    // MIME standard requires \r\n for line endings
-    const messageParts = [
-      `From: "Oliver from invrse" <${senderEmail}>`,
-      `Reply-To: ${senderEmail}`,
-      `To: ${email.leads.email}`,
-      `Subject: ${email.subject}`,
-      `Date: ${new Date().toUTCString()}`,
-      'Content-Type: text/html; charset=utf-8',
-      'MIME-Version: 1.0',
-      '',
-      htmlBody,
-    ];
-
-    const rawMessage = Buffer.from(messageParts.join('\r\n'))
-      .toString('base64')
-      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-
-    const response = await gmail.users.messages.send({
-      userId: 'me',
-      requestBody: { raw: rawMessage },
+    const data = await sendEmail({
+      from: 'Oliver from invrse <oliver@invrse.dev>', // Update this to your verified domain later
+      to: email.leads.email,
+      subject: email.subject,
+      html: htmlBody,
     });
 
-    console.log(`[Email] Successfully sent! Gmail ID: ${response.data.id}`);
+    console.log(`[Email] Successfully sent via Resend! ID: ${data.id}`);
 
     await supabase.from('emails').update({
       status: 'sent',
       sent_at: new Date().toISOString(),
-      gmail_message_id: response.data.id,
+      resend_id: data.id,
     }).eq('id', emailId);
 
     await supabase.from('leads').update({
@@ -106,7 +80,7 @@ router.post('/send', async (req, res) => {
       last_contacted: new Date().toISOString(),
     }).eq('id', email.lead_id);
 
-    return res.status(200).json({ success: true, gmailId: response.data.id });
+    return res.status(200).json({ success: true, resendId: data.id });
   } catch (err) {
     console.error('Send error:', err.message);
     return res.status(500).json({ error: err.message });
