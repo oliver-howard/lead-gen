@@ -38,6 +38,8 @@ router.post('/generate', async (req, res) => {
   }
 });
 
+const { wrapEmailTemplate } = require('../email/template');
+
 // POST /api/email/send
 router.post('/send', async (req, res) => {
   const { emailId } = req.body;
@@ -61,13 +63,15 @@ router.post('/send', async (req, res) => {
     oauth2Client.setCredentials({ refresh_token: process.env.GMAIL_REFRESH_TOKEN });
     const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
 
+    const htmlBody = wrapEmailTemplate(email.body, email.subject);
+
     const messageParts = [
       `To: ${email.leads.email}`,
       `Subject: ${email.subject}`,
-      'Content-Type: text/plain; charset=utf-8',
+      'Content-Type: text/html; charset=utf-8',
       'MIME-Version: 1.0',
       '',
-      email.body,
+      htmlBody,
     ];
 
     const rawMessage = Buffer.from(messageParts.join('\n'))
@@ -101,7 +105,8 @@ router.post('/send', async (req, res) => {
 router.get('/', async (req, res) => {
   const { data, error } = await supabase
     .from('emails')
-    .select('*, leads(name, email, city, niche, category)')
+    .select('*, leads!inner(name, email, city, niche, category, status)')
+    .neq('leads.status', 'archived')
     .order('generated_at', { ascending: false });
 
   if (error) return res.status(500).json({ error: error.message });

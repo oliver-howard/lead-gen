@@ -23,6 +23,7 @@ create table if not exists leads (
   desktop_score     int,
   has_ssl           boolean,
   is_mobile_responsive boolean,
+  cms               text,
 
   -- Lead intelligence
   lead_score    int default 0,

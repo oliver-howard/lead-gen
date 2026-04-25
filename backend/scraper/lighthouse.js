@@ -42,6 +42,7 @@ async function auditWebsite(url) {
       url: targetUrl,
       mobile_score: mobileMetrics.score,
       desktop_score: desktopMetrics.score,
+      cms: mobileMetrics.cms || desktopMetrics.cms,
       lcp_ms: mobileMetrics.lcp,
       fcp_ms: mobileMetrics.fcp,
       has_ssl: hasSSL,
@@ -54,6 +55,7 @@ async function auditWebsite(url) {
       url: targetUrl,
       mobile_score: null,
       desktop_score: null,
+      cms: null,
       lcp_ms: null,
       fcp_ms: null,
       has_ssl: targetUrl.startsWith('https://'),
@@ -108,8 +110,27 @@ async function measurePerformance(page, url) {
     if (!url.startsWith('https://')) score -= 10;
     score = Math.max(0, Math.round(score));
 
+    // Detect CMS/Platform
+    const cms = await page.evaluate(() => {
+      const generator = document.querySelector('meta[name="generator"]')?.getAttribute('content') || '';
+      if (generator.includes('Squarespace')) return 'Squarespace';
+      if (generator.includes('Wix')) return 'Wix';
+      if (generator.includes('Shopify')) return 'Shopify';
+      if (generator.includes('WordPress')) return 'WordPress';
+
+      // Fallback script/link checks
+      const html = document.documentElement.innerHTML;
+      if (html.includes('squarespace.com')) return 'Squarespace';
+      if (html.includes('wixstatic.com')) return 'Wix';
+      if (html.includes('cdn.shopify.com')) return 'Shopify';
+      if (html.includes('/wp-content/')) return 'WordPress';
+
+      return null;
+    });
+
     return {
       score,
+      cms,
       fcp: timing.fcp,
       lcp: timing.lcp,
       loadTime,

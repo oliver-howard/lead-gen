@@ -28,7 +28,7 @@ export default function Discover() {
     // The scraper runs locally. This page shows the command to run.
     setLog([
       { type: 'info', msg: '📋 Copy and run this command in your terminal:' },
-      { type: 'code', msg: `cd lead-gen/backend && node scraper/run.js --niche "${niche}" --city "${city}" --max ${max}` },
+      { type: 'code', msg: `cd backend && node scraper/run.js --niche "${niche}" --city "${city}" --max ${max}` },
       { type: 'info', msg: '✅ Leads will appear in the Dashboard automatically as they are saved to Supabase.' },
       { type: 'info', msg: '⏱  Expected time: ~2–5 minutes for 20 leads (includes audit + email discovery).' },
     ]);

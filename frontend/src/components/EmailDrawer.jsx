@@ -8,6 +8,7 @@ export default function EmailDrawer({ email, onClose, onUpdate, showToast }) {
   const [saving, setSaving] = useState(false);
   const [sending, setSending] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [previewMode, setPreviewMode] = useState(false);
 
   const isDraft = email.status === 'draft';
 
@@ -124,28 +125,93 @@ export default function EmailDrawer({ email, onClose, onUpdate, showToast }) {
             </div>
           </div>
 
-          <div>
-            <div className="form-group" style={{ marginBottom: 16 }}>
-              <label className="form-label">Subject</label>
-              <input 
-                className="input" 
-                style={{ width: '100%' }} 
-                value={subject} 
-                onChange={e => setSubject(e.target.value)}
-                readOnly={!isDraft}
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Message Body</label>
-              <textarea
-                className="email-preview"
-                style={{ minHeight: '300px' }}
-                value={body}
-                onChange={e => setBody(e.target.value)}
-                readOnly={!isDraft}
-              />
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <div className="section-label" style={{ marginBottom: 0 }}>Message Content</div>
+            <button 
+              className={`btn btn-sm ${!previewMode ? 'btn-ghost' : 'btn-primary'}`}
+              onClick={() => setPreviewMode(!previewMode)}
+              style={{ fontSize: 11, padding: '4px 8px' }}
+            >
+              {previewMode ? 'Edit Text' : 'Branded Preview'}
+            </button>
           </div>
+
+          {!previewMode ? (
+            <div>
+              <div className="form-group" style={{ marginBottom: 16 }}>
+                <label className="form-label">Subject</label>
+                <input 
+                  className="input" 
+                  style={{ width: '100%' }} 
+                  value={subject} 
+                  onChange={e => setSubject(e.target.value)}
+                  readOnly={!isDraft}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Message Body</label>
+                <textarea
+                  className="email-preview"
+                  style={{ minHeight: '350px' }}
+                  value={body}
+                  onChange={e => setBody(e.target.value)}
+                  readOnly={!isDraft}
+                />
+              </div>
+            </div>
+          ) : (
+            <div style={{ border: '1px solid var(--bg-border)', borderRadius: 'var(--radius)', overflow: 'hidden', height: '500px', background: '#fff' }}>
+              <iframe
+                title="Branded Preview"
+                style={{ width: '100%', height: '100%', border: 'none' }}
+                srcDoc={`
+                  <html>
+                    <head>
+                      <style>
+                        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+                        body { margin: 0; padding: 20px; font-family: 'Inter', sans-serif; background: #fff; color: #1a1a1a; }
+                        .preview-wrapper { 
+                          background-color: #ffffff;
+                          background-image: linear-gradient(#f1f5f9 1px, transparent 1px), linear-gradient(90deg, #f1f5f9 1px, transparent 1px);
+                          background-size: 20px 20px;
+                          padding: 40px 20px;
+                          min-height: 100vh;
+                        }
+                        .email-container { 
+                          max-width: 500px; 
+                          margin: 0 auto; 
+                          background: #fff; 
+                          border: 1px solid #e2e8f0; 
+                          border-radius: 12px; 
+                          padding: 30px; 
+                          box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+                        }
+                        .logo { font-size: 20px; font-weight: 700; color: #000; text-decoration: none; margin-bottom: 24px; display: block; letter-spacing: -0.04em; }
+                        .content { font-size: 14px; line-height: 1.6; color: #1a1a1a; }
+                        .content p { margin-bottom: 16px; }
+                        .button { display: inline-block; padding: 10px 20px; background: #000; color: #fff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 13px; margin-top: 10px; }
+                        .footer { margin-top: 30px; text-align: center; font-size: 11px; color: #94a3b8; }
+                      </style>
+                    </head>
+                    <body>
+                      <div class="preview-wrapper">
+                        <div class="email-container">
+                          <div class="logo">invrse</div>
+                          <div class="content">
+                            ${body.split('\n\n').map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('')}
+                          </div>
+                          <a href="#" class="button">Book Strategy Call</a>
+                        </div>
+                        <div class="footer">
+                          Sent by <strong>Oliver Howard</strong> from invrse.dev
+                        </div>
+                      </div>
+                    </body>
+                  </html>
+                `}
+              />
+            </div>
+          )}
         </div>
 
         <div className="drawer-footer">

@@ -39,7 +39,16 @@ async function run() {
 
   for (const lead of rawLeads) {
     try {
-      // Step 2: Audit website (if they have one)
+      // Step 2: Find email first (skip if not found)
+      console.log(`📧 Finding email for ${lead.name}...`);
+      const email = await findEmail(lead.website, lead.name);
+
+      if (!email) {
+        console.warn(`⏭️  Skipping ${lead.name} - No email found.`);
+        continue;
+      }
+
+      // Step 3: Audit website (if they have one)
       let auditData = {};
       if (lead.website) {
         console.log(`🔬 Auditing ${lead.website}...`);
@@ -50,13 +59,10 @@ async function run() {
             desktop_score: audit.desktop_score,
             has_ssl: audit.has_ssl,
             is_mobile_responsive: audit.is_mobile_responsive,
+            cms: audit.cms,
           };
         }
       }
-
-      // Step 3: Find email
-      console.log(`📧 Finding email for ${lead.name}...`);
-      const email = await findEmail(lead.website, lead.name);
 
       // Step 4: Calculate score
       const enrichedLead = { ...lead, ...auditData, email };

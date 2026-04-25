@@ -1,10 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Search, Filter, RefreshCw, Globe, Phone, Mail, Star } from 'lucide-react';
+import { Search, Filter, RefreshCw, Globe, Phone, Mail, Star, CheckSquare, Square, Trash2, Tag, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import supabase from '../lib/supabase';
 import LeadDrawer from '../components/LeadDrawer';
 import Toast from '../components/Toast';
 
 const STATUS_FILTERS = ['all', 'new', 'draft', 'emailed', 'replied', 'booked', 'archived'];
+const SORT_OPTIONS = [
+  { label: 'Score', field: 'lead_score' },
+  { label: 'Name', field: 'name' },
+  { label: 'Rating', field: 'rating' },
+  { label: 'Reviews', field: 'reviews' },
+  { label: 'Newest', field: 'scraped_at' },
+];
 
 function ScoreBadge({ score }) {
   if (score === null || score === undefined) return <span style={{ color: 'var(--text-muted)' }}>—</span>;
@@ -26,8 +33,12 @@ export default function Dashboard() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedLead, setSelectedLead] = useState(null);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [sortBy, setSortBy] = useState('scraped_at');
+  const [sortOrder, setSortOrder] = useState('desc');
   const [toast, setToast] = useState(null);
   const [stats, setStats] = useState({ total: 0, emailed: 0, replied: 0, highScore: 0 });
+  const [bulkStatus, setBulkStatus] = useState('');
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -39,9 +50,13 @@ export default function Dashboard() {
     let query = supabase
       .from('leads')
       .select('*')
-      .order('lead_score', { ascending: false });
+      .order(sortBy, { ascending: sortOrder === 'asc' });
 
-    if (statusFilter !== 'all') query = query.eq('status', statusFilter);
+    if (statusFilter !== 'all') {
+      query = query.eq('status', statusFilter);
+    } else {
+      query = query.neq('status', 'archived');
+    }
     if (search) query = query.ilike('name', `%${search}%`);
 
     const { data, error } = await query;
@@ -54,11 +69,61 @@ export default function Dashboard() {
         replied: data?.filter(l => l.status === 'replied').length || 0,
         highScore: data?.filter(l => l.lead_score >= 60).length || 0,
       });
+      setSelectedIds([]); // Reset selection on refresh/filter
     }
     setLoading(false);
-  }, [search, statusFilter]);
+  }, [search, statusFilter, sortBy, sortOrder]);
 
   useEffect(() => { fetchLeads(); }, [fetchLeads]);
+
+  const toggleSort = (field) => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortOrder('desc');
+    }
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === leads.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(leads.map(l => l.id));
+    }
+  };
+
+  const toggleSelectLead = (id, e) => {
+    e.stopPropagation();
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkStatusUpdate = async (status) => {
+    if (!status || selectedIds.length === 0) return;
+    
+    try {
+      const res = await fetch('/api/leads/bulk-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: selectedIds, status }),
+      });
+      
+      if (!res.ok) throw new Error('Bulk update failed');
+      
+      showToast(`Updated ${selectedIds.length} leads to ${status}`);
+      fetchLeads();
+      setBulkStatus('');
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  };
+
+  const SortIcon = ({ field }) => {
+    if (sortBy !== field) return <ArrowUpDown size={12} style={{ opacity: 0.3, marginLeft: 6 }} />;
+    return sortOrder === 'asc' ? <ArrowUp size={12} style={{ marginLeft: 6, color: 'var(--accent)' }} /> : <ArrowDown size={12} style={{ marginLeft: 6, color: 'var(--accent)' }} />;
+  };
 
   return (
     <>
@@ -67,9 +132,38 @@ export default function Dashboard() {
           <div className="page-title">Lead Pipeline</div>
           <div className="page-subtitle">Manage and track your outreach prospects</div>
         </div>
-        <button className="btn btn-ghost btn-sm" onClick={fetchLeads}>
-          <RefreshCw size={14} /> Refresh
-        </button>
+        <div style={{ display: 'flex', gap: 10 }}>
+          {selectedIds.length > 0 && (
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 10, 
+              background: 'var(--accent-glow)', 
+              padding: '4px 12px', 
+              borderRadius: 'var(--radius)',
+              border: '1px solid var(--accent)',
+              animation: 'slideIn 0.2s ease'
+            }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent-light)' }}>
+                {selectedIds.length} selected
+              </span>
+              <select 
+                className="input" 
+                style={{ height: 32, padding: '0 8px', fontSize: 12 }}
+                value={bulkStatus}
+                onChange={e => handleBulkStatusUpdate(e.target.value)}
+              >
+                <option value="">Change Status...</option>
+                {STATUS_FILTERS.filter(s => s !== 'all').map(s => (
+                  <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          <button className="btn btn-ghost btn-sm" onClick={fetchLeads}>
+            <RefreshCw size={14} /> Refresh
+          </button>
+        </div>
       </div>
 
       <div className="page-body">
@@ -110,15 +204,33 @@ export default function Dashboard() {
                 onChange={e => setSearch(e.target.value)}
               />
             </div>
-            <select
-              className="input"
-              value={statusFilter}
-              onChange={e => setStatusFilter(e.target.value)}
-            >
-              {STATUS_FILTERS.map(s => (
-                <option key={s} value={s}>{s === 'all' ? 'All statuses' : s.charAt(0).toUpperCase() + s.slice(1)}</option>
-              ))}
-            </select>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <select
+                className="input"
+                value={`${sortBy}-${sortOrder}`}
+                onChange={e => {
+                  const [field, order] = e.target.value.split('-');
+                  setSortBy(field);
+                  setSortOrder(order);
+                }}
+              >
+                <option value="lead_score-desc">Highest Score</option>
+                <option value="lead_score-asc">Lowest Score</option>
+                <option value="rating-desc">Highest Rating</option>
+                <option value="reviews-desc">Most Reviews</option>
+                <option value="scraped_at-desc">Newest First</option>
+                <option value="name-asc">A-Z</option>
+              </select>
+              <select
+                className="input"
+                value={statusFilter}
+                onChange={e => setStatusFilter(e.target.value)}
+              >
+                {STATUS_FILTERS.map(s => (
+                  <option key={s} value={s}>{s === 'all' ? 'All statuses' : s.charAt(0).toUpperCase() + s.slice(1)}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {loading ? (
@@ -132,17 +244,46 @@ export default function Dashboard() {
             <table>
               <thead>
                 <tr>
-                  <th>Business</th>
+                  <th style={{ width: 40, textAlign: 'center' }}>
+                    <button 
+                      onClick={toggleSelectAll} 
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+                    >
+                      {selectedIds.length === leads.length ? <CheckSquare size={16} color="var(--accent)" /> : <Square size={16} />}
+                    </button>
+                  </th>
+                  <th onClick={() => toggleSort('name')} style={{ cursor: 'pointer' }}>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>Business <SortIcon field="name" /></div>
+                  </th>
                   <th>Niche / City</th>
                   <th>Website</th>
-                  <th>Score</th>
-                  <th>Status</th>
-                  <th>Rating</th>
+                  <th onClick={() => toggleSort('lead_score')} style={{ cursor: 'pointer' }}>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>Score <SortIcon field="lead_score" /></div>
+                  </th>
+                  <th onClick={() => toggleSort('status')} style={{ cursor: 'pointer' }}>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>Status <SortIcon field="status" /></div>
+                  </th>
+                  <th onClick={() => toggleSort('rating')} style={{ cursor: 'pointer' }}>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>Rating <SortIcon field="rating" /></div>
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {leads.map(lead => (
-                  <tr key={lead.id} onClick={() => setSelectedLead(lead)}>
+                  <tr 
+                    key={lead.id} 
+                    onClick={() => setSelectedLead(lead)}
+                    className={selectedIds.includes(lead.id) ? 'selected-row' : ''}
+                    style={selectedIds.includes(lead.id) ? { background: '#6366f10a' } : {}}
+                  >
+                    <td style={{ textAlign: 'center' }}>
+                      <button 
+                        onClick={(e) => toggleSelectLead(lead.id, e)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+                      >
+                        {selectedIds.includes(lead.id) ? <CheckSquare size={16} color="var(--accent)" /> : <Square size={16} />}
+                      </button>
+                    </td>
                     <td>
                       <div style={{ fontWeight: 600 }}>{lead.name}</div>
                       {lead.phone && (
@@ -153,7 +294,10 @@ export default function Dashboard() {
                     </td>
                     <td>
                       <div>{lead.category || lead.niche}</div>
-                      <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{lead.city}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        {lead.city}
+                        {lead.cms && <span style={{ padding: '1px 5px', background: 'var(--bg-elevated)', border: '1px solid var(--bg-border)', borderRadius: 4, fontSize: 10, color: 'var(--accent-light)' }}>{lead.cms}</span>}
+                      </div>
                     </td>
                     <td>
                       {lead.website ? (

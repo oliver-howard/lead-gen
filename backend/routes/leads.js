@@ -21,4 +21,22 @@ router.patch('/:id', async (req, res) => {
   return res.json(data);
 });
 
+// POST /api/leads/bulk-status
+router.post('/bulk-status', async (req, res) => {
+  const { ids, status } = req.body;
+  if (!ids || !Array.isArray(ids) || !status) {
+    return res.status(400).json({ error: 'ids (array) and status are required' });
+  }
+
+  const { data, error } = await supabase
+    .from('leads')
+    .update({ status })
+    .in('id', ids)
+    .select();
+
+  if (error) return res.status(500).json({ error: error.message });
+  return res.json(data);
+});
+
 module.exports = router;
+

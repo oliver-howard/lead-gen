@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Globe, Phone, Mail, Star, Shield, Smartphone, Monitor, Sparkles, Send, ExternalLink } from 'lucide-react';
+import { X, Globe, Phone, Mail, Star, Shield, Smartphone, Monitor, Sparkles, Send, ExternalLink, Layers } from 'lucide-react';
 import supabase from '../lib/supabase';
 
 function AuditBar({ label, score, icon: Icon }) {
@@ -168,6 +168,11 @@ export default function LeadDrawer({ lead, onClose, onUpdate, showToast }) {
                   <span className={`chip ${lead.is_mobile_responsive ? 'chip-replied' : 'chip-new'}`}>
                     <Smartphone size={10} /> {lead.is_mobile_responsive ? 'Mobile OK' : 'Not Responsive'}
                   </span>
+                  {lead.cms && (
+                    <span className="chip chip-emailed">
+                      <Layers size={10} /> {lead.cms}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
