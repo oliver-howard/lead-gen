@@ -38,7 +38,8 @@ export default function EmailDrawer({ email, onClose, onUpdate, showToast }) {
   };
 
   const handleSend = async () => {
-    if (!isDraft) return;
+    if (!isDraft || sending) return;
+    console.log('[Email] handleSend triggered for email ID:', email.id);
     setSending(true);
     try {
       // Save first to ensure latest content is sent

@@ -55,6 +55,8 @@ router.post('/send', async (req, res) => {
   if (!email.leads?.email) return res.status(400).json({ error: 'Lead has no email address' });
 
   try {
+    console.log(`[Email] Attempting to send email ID: ${emailId} to ${email.leads.email}`);
+    
     const oauth2Client = new google.auth.OAuth2(
       process.env.GMAIL_CLIENT_ID,
       process.env.GMAIL_CLIENT_SECRET,
@@ -63,18 +65,26 @@ router.post('/send', async (req, res) => {
     oauth2Client.setCredentials({ refresh_token: process.env.GMAIL_REFRESH_TOKEN });
     const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
 
+    // Get the sender's email from the profile to ensure proper 'From' header
+    const profile = await gmail.users.getProfile({ userId: 'me' });
+    const senderEmail = profile.data.emailAddress;
+
     const htmlBody = wrapEmailTemplate(email.body, email.subject);
 
+    // MIME standard requires \r\n for line endings
     const messageParts = [
+      `From: "Oliver from invrse" <${senderEmail}>`,
+      `Reply-To: ${senderEmail}`,
       `To: ${email.leads.email}`,
       `Subject: ${email.subject}`,
+      `Date: ${new Date().toUTCString()}`,
       'Content-Type: text/html; charset=utf-8',
       'MIME-Version: 1.0',
       '',
       htmlBody,
     ];
 
-    const rawMessage = Buffer.from(messageParts.join('\n'))
+    const rawMessage = Buffer.from(messageParts.join('\r\n'))
       .toString('base64')
       .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 
@@ -82,6 +92,8 @@ router.post('/send', async (req, res) => {
       userId: 'me',
       requestBody: { raw: rawMessage },
     });
+
+    console.log(`[Email] Successfully sent! Gmail ID: ${response.data.id}`);
 
     await supabase.from('emails').update({
       status: 'sent',
