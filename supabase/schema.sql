@@ -40,7 +40,7 @@ create table if not exists leads (
 -- EMAILS table
 create table if not exists emails (
   id            uuid primary key default gen_random_uuid(),
-  lead_id       uuid references leads(id) on delete cascade,
+  lead_id       uuid unique references leads(id) on delete cascade,
   subject       text,
   body          text,
   status        text default 'draft'
@@ -59,7 +59,7 @@ create table if not exists emails (
 -- Indexes for common queries
 create index if not exists leads_status_idx on leads(status);
 create index if not exists leads_score_idx  on leads(lead_score desc);
-create index if not exists emails_lead_idx  on emails(lead_id);
+create unique index if not exists emails_lead_idx on emails(lead_id);
 create index if not exists emails_status_idx on emails(status);
 
 -- Row Level Security (disable for internal tool — you are the only user)

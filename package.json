@@ -1,0 +1,20 @@
+{
+  "name": "lead-gen",
+  "version": "1.0.0",
+  "description": "Lead generation and outreach tool",
+  "scripts": {
+    "dev": "concurrently --names \"API,WEB\" --prefix-colors \"cyan,magenta\" \"npm run dev:api\" \"npm run dev:web\"",
+    "dev:api": "cd backend && nodemon index.js",
+    "dev:web": "cd frontend && npm run dev",
+    "scrape": "cd backend && node scraper/run.js",
+    "kill": "pkill -f 'node index.js'; pkill -f 'nodemon'; pkill -f 'vite'; echo '✅ All processes killed'",
+    "restart": "npm run kill; sleep 1 && npm run dev"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "nodemon": "^3.1.14"
+  }
+}
